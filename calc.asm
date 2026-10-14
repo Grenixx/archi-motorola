@@ -20,7 +20,8 @@ RemoveSpace movem.l a0/a1,-(a7)
 \is_space	addq.l #1,a0
 			bra \loop
 
-\quit		movem.l (a7)+,a0/a1
+\quit		move.b #0,(a1)
+			movem.l (a7)+,a0/a1
 			rts
 
 
