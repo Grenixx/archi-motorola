@@ -1,10 +1,31 @@
-                org     $4
-vect1           dc.l    Main
+                org     $0
+
+vector_000      dc.l    $ffb500
+vector_001      dc.l    Main
 
                 org     $500
-Main            bra     ConvertTest
 
-ConvertTest     movea.l #STRING_IS_MAX_ERROR,a0
+Main            bra     PrintTest
+
+PrintTest       lea sTest,a0
+                move.b #24,d1
+                move.b #20,d2
+                jsr Print
+                illegal
+
+Print           move.l a0,-(sp)
+\loop           move.b (a0)+,d0
+                beq \quit
+                jsr PrintChar
+                add.l #1,d1
+                bra \loop
+
+\quit           move.l (sp)+,a0
+                rts
+
+PrintChar incbin "PrintChar.bin"
+
+ConvertTest     movea.l #STRING_TO_CONVERT,a0
                 jsr     Convert
                 illegal
 
@@ -118,3 +139,4 @@ STRING_REMOVE_SPACE     dc.b    "5 +  12 ",0
 STRING_IS_CHAR_ERROR    dc.b    "1233",0
 STRING_IS_MAX_ERROR     dc.b    "32768",0
 STRING_TO_CONVERT       dc.b    "12",0
+sTest                   dc.b    "Hello World",0
