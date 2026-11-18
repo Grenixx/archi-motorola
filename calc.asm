@@ -5,7 +5,144 @@ vector_001      dc.l    Main
 
                 org     $500
 
-Main            bra     PrintTest
+Main            bra     UitoaTest
+
+UitoaTest       move.l #10825,d0
+                lea buffer,a0
+                jsr Uitoa
+                illegal
+
+Uitoa           move.l a0,-(sp)
+                move.l #0,-(sp)
+
+\loop           divu #10,d0
+                and.l #$FFFF0000,d0
+                swap.l d0
+                tst d0
+                beq \dequeue
+                add.l #'0',d0
+                move.w d0,-(sp)
+
+\dequeue        move.w (sp)+,d0
+                tst d0
+                beq \quit
+                move.b d0,(a0)
+                addq.l #1,a0
+                bra \dequeue
+
+\quit           move.l (sp)+,a0
+                rts
+
+
+GetExprTest     lea sGetExprTest,a0
+                jsr GetExpr
+                illegal
+
+GetExpr         movem.l a0/d1/d2/d3,-(sp)
+                move.l d0,d3 ; on le save au cas ou ca foire
+
+                jsr GetNum
+                bne \false
+
+                move.b d0,d1 ; init
+
+\loop           move.b (a0),d2
+                beq \true
+                addq.l #1,a0
+                jsr GetNum
+                bne \false
+
+                cmp #'+',d2
+                beq \add
+
+                cmp #'-',d2
+                beq \sub
+
+                cmp #'*',d2
+                beq \mult
+
+                cmp #'/',d2
+                beq \div
+
+\add        add.l d0,d1
+            bra \loop
+
+\sub        sub.l d0,d1
+            bra \loop
+
+\mult       muls d0,d1
+            bra \loop
+
+\div        tst d0
+            beq \false
+            divs.w d0,d1
+            ext.l d1
+            bra \loop
+
+\true       move.l d1,d0
+            movem.l (sp)+,a0/d1/d2/d3
+            ori.b #%00000100,ccr
+            rts
+
+\false      move.l d3,d0
+            movem.l (sp)+,a0/d1/d2/d3
+            andi.b #%11111011,ccr
+            rts
+
+GetNumTest      lea sGetNumTest,a0
+                jsr GetNum
+                illegal
+
+GetNum          movem.l a1/a2/d1/d2,-(sp)
+                move.l d0,d2
+
+                movea.l a0,a1
+                jsr NextOp
+
+                movea.l a0,a2
+                movea.l a1,a0
+
+                move.b (a2),d1
+                move.b #$00,(a2)
+
+                jsr Convert
+                bne \error
+
+                move.b d1,(a2)
+                movea.l a2,a0
+                movem.l (sp)+,a1/a2/d1/d2
+                bra \true
+
+\error          move.b d1,(a2)
+                movea.l a1,a0
+                move.l d2,d0
+                movem.l (sp)+,a1/a2/d1/d2
+                bra \false
+
+\true           ori.b #%00000100,ccr
+                rts
+\false          andi.b #%11111011,ccr
+                rts
+
+NextOpTest      lea sNextOpTest,a0
+                jsr NextOp
+                move.b (a0),d3
+                illegal
+
+NextOp          tst.b (a0)
+                beq \quit
+                cmp.b #'+',(a0)
+                beq \quit
+                cmp.b #'-',(a0)
+                beq \quit
+                cmp.b #'*',(a0)
+                beq \quit
+                cmp.b #'/',(a0)
+                beq \quit
+                adda.l #1,a0
+                bra NextOp
+
+\quit           rts
 
 PrintTest       lea sTest,a0
                 move.b #24,d1
@@ -140,3 +277,7 @@ STRING_IS_CHAR_ERROR    dc.b    "1233",0
 STRING_IS_MAX_ERROR     dc.b    "32768",0
 STRING_TO_CONVERT       dc.b    "12",0
 sTest                   dc.b    "Hello World",0
+sNextOpTest             dc.b    "12+5",0
+sGetNumTest             dc.b    "104+9*2-3",0
+sGetExprTest            dc.b    "104+9*2-3",0
+buffer                  ds.b    10
